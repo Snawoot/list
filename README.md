@@ -1,5 +1,7 @@
 # list
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/Snawoot/list.svg)](https://pkg.go.dev/github.com/Snawoot/list)
+
 Improved version of "container/list" from Go stdlib:
 
 * Uses generics instead of interface values.
