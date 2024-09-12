@@ -4,7 +4,10 @@
 
 package list
 
-import "testing"
+import (
+	"container/list"
+	"testing"
+)
 
 func checkListLen[T any](t *testing.T, l *List[T], len int) bool {
 	if n := l.Len(); n != len {
@@ -339,4 +342,83 @@ func TestMoveUnknownMark(t *testing.T) {
 	l1.MoveBefore(e1, e2)
 	checkList(t, &l1, []int{1})
 	checkList(t, &l2, []int{2})
+}
+
+func BenchmarkContainerList(b *testing.B) {
+	b.Run("PushFront", func(b *testing.B) {
+		l := list.New()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			l.PushFront(i)
+		}
+	})
+	b.Run("PushPopFront", func(b *testing.B) {
+		l := list.New()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			l.PushFront(i)
+		}
+		for i := 0; i < b.N; i++ {
+			l.Remove(l.Front())
+		}
+	})
+	b.Run("PushPopFrontImmediate", func(b *testing.B) {
+		l := list.New()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			l.PushFront(i)
+			l.Remove(l.Front())
+		}
+	})
+}
+
+func warmup[T any](l *List[T], N int) {
+	l.Grow(max(0, N-l.Cap()))
+}
+
+func BenchmarkFreelistList(b *testing.B) {
+	b.Run("PushFront", func(b *testing.B) {
+		l := New[int]()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			l.PushFront(i)
+		}
+	})
+	b.Run("PushPopFront", func(b *testing.B) {
+		l := New[int]()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			l.PushFront(i)
+		}
+		for i := 0; i < b.N; i++ {
+			l.Remove(l.Front())
+		}
+	})
+	b.Run("PushPopFrontImmediate", func(b *testing.B) {
+		l := New[int]()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			l.PushFront(i)
+			l.Remove(l.Front())
+		}
+	})
+	b.Run("WarmedUpPushFront", func(b *testing.B) {
+		l := New[int]()
+		warmup(l, b.N)
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			l.PushFront(i)
+		}
+	})
+	b.Run("WarmedUpPushPopFront", func(b *testing.B) {
+		l := New[int]()
+		warmup(l, b.N)
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			l.PushFront(i)
+		}
+		for i := 0; i < b.N; i++ {
+			l.Remove(l.Front())
+		}
+	})
 }
