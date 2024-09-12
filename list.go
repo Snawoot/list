@@ -11,6 +11,10 @@
 //	}
 package list
 
+import (
+	"github.com/Snawoot/freelist"
+)
+
 // Element is an element of a linked list.
 type Element[T any] struct {
 	// Next and previous pointers in the doubly-linked list of elements.
@@ -48,6 +52,7 @@ func (e *Element[T]) Prev() *Element[T] {
 type List[T any] struct {
 	root Element[T] // sentinel list element, only &root, root.prev, and root.next are used
 	len  int     // current list length excluding (this) sentinel element
+	fl   freelist.Freelist[Element[T]] // freelist allocator for elements
 }
 
 // Init initializes or clears list l.
@@ -55,6 +60,7 @@ func (l *List[T]) Init() *List[T] {
 	l.root.next = &l.root
 	l.root.prev = &l.root
 	l.len = 0
+	l.fl.Clear()
 	return l
 }
 
@@ -64,6 +70,18 @@ func New[T any]() *List[T] { return new(List[T]).Init() }
 // Len returns the number of elements of list l.
 // The complexity is O(1).
 func (l *List[T]) Len() int { return l.len }
+
+// Cap returns the number of preallocated elements in the freelist.
+func (l *List[T]) Cap() int { return l.fl.Cap() }
+
+// Grow grows the freelist's capacity to guarantee space for another n elements.
+// After Grow(n), at least n elements can be added to the
+// list without another allocation.
+// If n is negative, Grow will panic.
+func (l *List[T]) Grow(n int) {
+	l.lazyInit()
+	l.fl.Grow(n)
+}
 
 // Front returns the first element of list l or nil if the list is empty.
 func (l *List[T]) Front() *Element[T] {
@@ -101,16 +119,16 @@ func (l *List[T]) insert(e, at *Element[T]) *Element[T] {
 
 // insertValue is a convenience wrapper for insert(&Element{Value: v}, at).
 func (l *List[T]) insertValue(v T, at *Element[T]) *Element[T] {
-	return l.insert(&Element[T]{Value: v}, at)
+	newElem := l.fl.Alloc()
+	newElem.Value = v
+	return l.insert(newElem, at)
 }
 
 // remove removes e from its list, decrements l.len
 func (l *List[T]) remove(e *Element[T]) {
 	e.prev.next = e.next
 	e.next.prev = e.prev
-	e.next = nil // avoid memory leaks
-	e.prev = nil // avoid memory leaks
-	e.list = nil
+	l.fl.Free(e)
 	l.len--
 }
 

@@ -240,8 +240,9 @@ func TestIssue6349(t *testing.T) {
 
 	e := l.Front()
 	l.Remove(e)
-	if e.Value != 1 {
-		t.Errorf("e.value = %d, want 1", e.Value)
+	if e.Value != 0 {
+		// expected as freeing element zeroes memory
+		t.Errorf("e.value = %d, want 0", e.Value) // expected as freeing element zeroes memory
 	}
 	if e.Next() != nil {
 		t.Errorf("e.Next() != nil")
